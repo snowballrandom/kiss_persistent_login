@@ -1,4 +1,4 @@
-kiss_persistent_login
+KISS Persistent Login
 =====================
 
 A Persistent Login Mechanizm

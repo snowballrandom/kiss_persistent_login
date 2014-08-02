@@ -38,7 +38,7 @@
 <div class="wrap">	
 	<h2>Login</h2>
  <?php
- 
+
  
  if(!$this->session->userdata('logged_in')){
  	

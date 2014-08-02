@@ -1,9 +1,9 @@
 KISS Persistent Login
 =====================
 
-A Persistent Login Mechanizm
+A Persistent Login Mechanism
 
-This is a "Keep It Simple Stupid" persistent login mechanizm for codeigniter, a.k.a."Remeber Me" login.
+This is a "Keep It Simple Stupid" persistent login mechanism for codeigniter, a.k.a."Remeber Me" login.
 
 I built this to show how easy a persistent login can be built and deployed. 
 Features a register form to register new users, of course the login form too! 

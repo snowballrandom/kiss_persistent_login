@@ -1,128 +1,143 @@
 <?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
+/**
+ * KISS Persistent Login
+ *
+    Copyright (C) <2012-2013>  <KISS Persistent Login>
 
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * 
+ *
+ *
+ * @package		KISS Persistent Login
+ * @author		Kyle Coots
+ * @copyright	Copyright (c) 2014, KISS Persistent Login
+ * @license		https://github.com/snowballrandom/kiss_persistent_login
+ * @link		https://github.com/snowballrandom/kiss_persistent_login
+ * @since		Version 1.0
+ * @filesource
+ */
+
+// ------------------------------------------------------------------------
+
+/**
+ * KISS Persistent Login
+ *
+ * This class object is the Welcome Controller.
+ *
+ * @package		KISS Persistent Login
+ * @subpackage	Controller
+ * @category	Controller
+ * @author		Kyle Coots
+ * @link		https://github.com/snowballrandom/kiss_persistent_login
+ */ 
+
+ 
 class Welcome extends CI_Controller {
 
-	/**
-	 * Index Page for this controller.
-	 *
-	 * Maps to the following URL
-	 * 		http://example.com/index.php/welcome
-	 *	- or -  
-	 * 		http://example.com/index.php/welcome/index
-	 *	- or -
-	 * Since this controller is set as the default controller in 
-	 * config/routes.php, it's displayed at http://example.com/
-	 *
-	 * So any other public methods not prefixed with an underscore will
-	 * map to /index.php/welcome/<method_name>
-	 * @see http://codeigniter.com/user_guide/general/urls.html
-	 */
+	private $username = '';
+	private $password = '';
+	private $persistent = FALSE;
+	
+	public function __construct(){
+		parent::__construct();		
+		$this->load->model('login_model');
+		$this->load->model('register_model');
+		
+		if($this->login_model->is_logged_in()){
+			redirect(base_url().'index.php/login/index');
+		}
+	}
+	
 	public function index()
 	{
-			$this->check_login();
 		$this->load->view('welcome_message');
 	}
 	
 	public function login(){
 		
-		$post_data = new stdClass;
-		$post_data->uname = $this->input->post('uname');
-		$post_data->pass = $this->input->post('pass');
-		$post_data->mem = $this->input->post('mem');
+	  $this->username = $this->input->post('username');
+	  $this->password = $this->input->post('password');
+	  $this->persistent = $this->input->post('persistent');
 
-			$this->validate($post_data);
+	  $this->form_validation->set_rules('username','Username','required');
 
-			$this->load->view('welcome_message', $post_data);
+	  $this->form_validation->set_rules(
+	    'password', 'Password', 'trim|required|min_length[6]|max_lenght[16]'
+	  );
+	  
+	  if($this->form_validation->run() == FALSE){
+		//redirect
+		$this->session->set_flashdata('username', $this->username);
+		$this->session->set_flashdata('username_error', form_error('username'));
+		$this->session->set_flashdata('password_error', form_error('password'));
+		redirect(base_url());
 		
+	  }else{
+		
+		$return_data = $this->login_model->login($this->username, $this->password, $this->persistent);
+		$this->__validate_redirect($return_data);
+
+	  }		
 
 	}
-	
-	private function validate($data){
-			
-		$this->db->select('idUser');
-		$this->db->select('uname');
-		$this->db->select('email');
-		$this->db->select('pass');
-		$this->db->where('uname', $data->uname);
-		$qdata = $this->db->get('user');
-		foreach ($qdata->result() as $value){
-
-				
-		  if($value->pass === $data->pass){
-	
-			$newdata = array(
-	           'name' 	   => $value->uname,
-	           'email'     => $value->email,
-	           'logged_in' => TRUE
-	         );		
-	
-			$this->session->set_userdata($newdata);
-		    
-		    if($this->strict_bool($data->mem) === TRUE){
-		  	  $this->save_login($value->idUser, $data->uname);
-		    }
-			
-		  }		   
-		}	
-	}
-	
-	private function set_session($hash){
-
-		$query = 'SELECT user.uname, user.email FROM user
-				  LEFT JOIN saved_session
-				  ON user.idUser = saved_session.idUser
-				  WHERE saved_session.hash = ?';
-		$qdata = $this->db->query($query, array($hash));
-  		if($qdata->num_rows() === 1){
-  	 	foreach ($qdata->result() as $value) {
-		  	
-		  $newdata = array(
-             'name'  	 => $value->uname,
-             'email'     => $value->email,
-             'logged_in' => TRUE
-           );
-
-		  $this->session->set_userdata($newdata);
-	 	}
-			return TRUE;
+	/**
+	 * Login Validate Redirect
+	 */
+	private function __validate_redirect($return_data){
+		if($return_data){	
+		  redirect(base_url().'index.php/login/index');
 		}else{
-			return FALSE;
+		  redirect(base_url());	
 		}
 	}
-	
-	private function save_login($id_user, $name){
-			
-		$hash = md5($name);
-		
-		$data = array(
-			'idUser' => $id_user,
-			'hash' => $hash
-		);
-		
-		$this->db->insert('saved_session', $data);
-		
-		$cookie = array(
-		    'name'   => 'saved',
-		    'value'  => $hash,
-		    'expire' => '31536000',
-		    'domain' => '.persistent-login.local',
-		    'path'   => '/',
-		    'prefix' => 'myprefix_',
-		    'secure' => FALSE
-		);
 
-		$this->input->set_cookie($cookie); 
+	public function register(){
 		
+	  $this->username = $this->input->post('reg_username');
+	  $this->password = $this->input->post('reg_password');
+
+	  $this->form_validation->set_rules('reg_username','Username','required');
+
+	  $this->form_validation->set_rules(
+	    'reg_password', 'Password', 'trim|required|min_length[6]|max_lenght[16]'
+	  );
+	  
+	  if($this->form_validation->run() == FALSE){
+		//redirect
+		$this->session->set_flashdata('reg_username', $this->username);
+		$this->session->set_flashdata('reg_username_error', form_error('reg_username'));
+		$this->session->set_flashdata('reg_password_error', form_error('reg_password'));
+		redirect(base_url());
+		
+	  }else{
+		
+		$return_data = $this->register_model->register($this->username, $this->password);
+		$this->__validate_reg_redirect($return_data);
+
+	  }			
 	}
+	/**
+	 * Register Validate Redirect
+	 */
+	private function __validate_reg_redirect($return_data){
+		if($return_data){	
+		  redirect(base_url().'index.php/register/register_succ');
+		}else{
+		  redirect(base_url().'index.php/register/index');
+		}		
+	}	
 	
-	public function check_login(){
-		$cookie = $this->input->cookie('myprefix_saved');
- 		$this->set_session($cookie);
-	}
-	
-	public function strict_bool($val=false){
-	   return is_integer($val)?false:$val == 1;
-	}		
 }
 
 /* End of file welcome.php */

@@ -13,7 +13,7 @@ and makes use of the php openssl_random_pseudo_bytes function to generate random
 This may not be the most secure method of handling a persistent login method, but the idea was to implement a very simple
 "Remember Me?" functionality. More of a starting point or reference. 
 
-How this helps!
+Hope this helps!
 
 If you would like to contribute to this or have questions feel free to branch off or drop a line on here.
 
